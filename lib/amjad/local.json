@@ -1,0 +1,37 @@
+{
+    "center": [
+        50,
+        10
+    ],
+    
+    "layers": [
+        {
+            "id": "background",
+            "paint": {
+                "background-color": "rgba(255, 255, 255, 1)"
+            },
+            "type": "background"
+        },
+        {
+            "id": "countries",
+            "paint": {
+                "line-color": "rgba(0, 0, 0, 1)",
+                "line-opacity": 1,
+                "line-width": 1
+            },
+            "source": "demotiles",
+            "source-layer": "countries",
+            "type": "line"
+        }
+    ],
+    "name": "Demo style",
+    "sources": {
+        "demotiles": {
+            "type": "vector",
+            "url": "http://34.93.16.227:8080/data/openmaptiles.json"
+        }
+    },
+    "sprite": "",
+    "version": 8,
+    "zoom": 6
+}

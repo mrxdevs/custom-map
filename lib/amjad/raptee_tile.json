@@ -1,0 +1,217 @@
+{
+    "basename": "india.mbtiles",
+    "bounds": [
+        67.67457,
+        5.896067,
+        97.41989,
+        35.730908
+    ],
+    "center": [
+        82.54723,
+        20.813488,
+        7
+    ],
+    "description": "Tile config based on OpenMapTiles schema",
+    "format": "pbf",
+    "id": "india",
+    "maxzoom": 14,
+    "minzoom": 0,
+    "name": "Tilemaker to OpenMapTiles schema",
+    "tilejson": "2.0.0",
+    "tiles": [
+        "http://34.93.16.227:8080/data/openmaptiles/{z}/{x}/{y}.pbf"
+    ],
+    "type": "baselayer",
+    "vector_layers": [
+        {
+            "fields": {
+                "capital": "Number",
+                "class": "String",
+                "iso_a2": "String",
+                "name:latin": "String",
+                "rank": "Number"
+            },
+            "id": "place",
+            "maxzoom": 14,
+            "minzoom": 0
+        },
+        {
+            "fields": {
+                "admin_level": "Number",
+                "class": "String",
+                "disputed": "Number"
+            },
+            "id": "boundary",
+            "maxzoom": 14,
+            "minzoom": 0
+        },
+        {
+            "fields": {
+                "class": "String",
+                "indoor": "Boolean",
+                "layer": "Number",
+                "level": "Number",
+                "name:latin": "String",
+                "rank": "Number",
+                "subclass": "String"
+            },
+            "id": "poi",
+            "maxzoom": 14,
+            "minzoom": 12
+        },
+        {
+            "fields": {
+                "housenumber": "String"
+            },
+            "id": "housenumber",
+            "maxzoom": 14,
+            "minzoom": 14
+        },
+        {
+            "fields": {
+                "brunnel": "String",
+                "class": "String",
+                "intermittent": "Number",
+                "name:latin": "String"
+            },
+            "id": "waterway",
+            "maxzoom": 14,
+            "minzoom": 8
+        },
+        {
+            "fields": {
+                "access": "String",
+                "bicycle": "String",
+                "brunnel": "String",
+                "class": "String",
+                "foot": "String",
+                "horse": "String",
+                "layer": "Number",
+                "oneway": "Number",
+                "ramp": "Number",
+                "render_height": "Number",
+                "render_min_height": "Number",
+                "service": "String",
+                "subclass": "String",
+                "surface": "String",
+                "toll": "Boolean"
+            },
+            "id": "transportation",
+            "maxzoom": 14,
+            "minzoom": 4
+        },
+        {
+            "fields": {
+                "class": "String",
+                "name:latin": "String",
+                "network": "String",
+                "ref": "String",
+                "ref_length": "Number",
+                "subclass": "String"
+            },
+            "id": "transportation_name",
+            "maxzoom": 14,
+            "minzoom": 8
+        },
+        {
+            "fields": {
+                "class": "String",
+                "housenumber": "String",
+                "indoor": "Boolean",
+                "layer": "Number",
+                "name:latin": "String",
+                "rank": "Number",
+                "render_height": "Number",
+                "render_min_height": "Number",
+                "subclass": "String"
+            },
+            "id": "building",
+            "maxzoom": 14,
+            "minzoom": 13
+        },
+        {
+            "fields": {
+                "class": "String",
+                "intermittent": "String"
+            },
+            "id": "water",
+            "maxzoom": 14,
+            "minzoom": 6
+        },
+        {
+            "fields": {
+                "class": "String",
+                "name:latin": "String"
+            },
+            "id": "water_name",
+            "maxzoom": 14,
+            "minzoom": 14
+        },
+        {
+            "fields": {
+                "class": "String",
+                "ref": "String"
+            },
+            "id": "aeroway",
+            "maxzoom": 14,
+            "minzoom": 11
+        },
+        {
+            "fields": {
+                "class": "String",
+                "ele": "Number",
+                "ele_ft": "Number",
+                "iata": "String",
+                "icao": "String",
+                "name:latin": "String"
+            },
+            "id": "aerodrome_label",
+            "maxzoom": 14,
+            "minzoom": 10
+        },
+        {
+            "fields": {
+                "class": "String",
+                "name:latin": "String"
+            },
+            "id": "park",
+            "maxzoom": 14,
+            "minzoom": 11
+        },
+        {
+            "fields": {
+                "class": "String",
+                "indoor": "Boolean",
+                "layer": "Number",
+                "name:latin": "String",
+                "rank": "Number",
+                "subclass": "String"
+            },
+            "id": "landuse",
+            "maxzoom": 14,
+            "minzoom": 4
+        },
+        {
+            "fields": {
+                "class": "String",
+                "subclass": "String"
+            },
+            "id": "landcover",
+            "maxzoom": 14,
+            "minzoom": 0
+        },
+        {
+            "fields": {
+                "class": "String",
+                "ele": "Number",
+                "ele_ft": "Number",
+                "name:latin": "String",
+                "rank": "Number"
+            },
+            "id": "mountain_peak",
+            "maxzoom": 14,
+            "minzoom": 11
+        }
+    ],
+    "version": "3.0"
+}
