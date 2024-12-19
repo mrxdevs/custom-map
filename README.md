@@ -1,4 +1,4 @@
-# maplibre_gl_example
+# Custom Map hosted on Local Server
 
 Demonstrates how to use the maplibre_gl plugin.
 
