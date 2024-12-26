@@ -85,12 +85,16 @@ class LocalStyleState extends State<LocalStyle> {
         // styleString: styleAbsoluteFilePath,
         // styleString: MapLibreStyles.demo,
         styleString:
-            "http://10.0.0.255:8080/styles/test-style/style.json", //for android emulator
+            "http://10.0.0.178:8080/styles/test-style/style.json", //for android emulator
         // styleString:
         //     "http://127.0.0.1::8080/styles/test-style/style.json", //for iOS emulator
-        // styleString: "http://34.93.16.227:8080/styles/test-style/style.json",
+        // styleString: "https://maps.raptee.com/styles/test-style/style.json",
         onMapCreated: _onMapCreated,
-        initialCameraPosition: const CameraPosition(target: LatLng(0, 0)),
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(13.067439, 80.237617), // Default center position
+          zoom: 8.0,
+        ),
+        myLocationEnabled: true,
         onStyleLoadedCallback: onStyleLoadedCallback,
       ),
     );

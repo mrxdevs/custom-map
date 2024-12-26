@@ -40,3 +40,4 @@ flutter:
     - lib/amjad/map_demo_style.json
     - lib/amjad/raptee_style.json
     - lib/amjad/local_map_style.json
+    - assets/

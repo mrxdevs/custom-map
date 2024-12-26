@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:location/location.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:maplibre_gl_example/attribution.dart';
-import 'package:maplibre_gl_example/chat_screen.dart';
 import 'package:maplibre_gl_example/custom_screen/map_module.dart';
 import 'package:maplibre_gl_example/get_map_informations.dart';
 import 'package:maplibre_gl_example/given_bounds.dart';
