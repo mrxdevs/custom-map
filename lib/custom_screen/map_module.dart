@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -28,19 +28,25 @@ class MapFeaturesScreen extends StatefulWidget {
 
 class _MapFeaturesScreenState extends State<MapFeaturesScreen> {
   MapLibreMapController? mapController;
-  Symbol? marker;
-
   final String _markerImageName = 'red_marker';
   final String _markerAssetPath = 'assets/red_marker.png';
-  static const LatLng center = LatLng(-33.86711, 151.1947171);
+  // static const LatLng center = LatLng(-33.86711, 151.1947171);
 
-  bool _isMarkerImageAdded = false; // To track if the image is loaded
-  bool _isSymbolTapListenerAdded = false;
+  bool _isMarkerImageAdded = false;
+  PageController? _pageController;
   Map<Symbol, EVCharger> markersMap = {};
+  EVCharger? selectedCharger;
+  bool isShowChargingStations = false;
+  Line? line;
 
-  /// Load marker image into the map style once
+  @override
+  void dispose() {
+    mapController?.onSymbolTapped.remove(_onMarkerTapped);
+    super.dispose();
+  }
+
   Future<void> _loadMarkerImage() async {
-    if (_isMarkerImageAdded) return; // Avoid reloading the image
+    if (_isMarkerImageAdded) return;
     try {
       final ByteData bytes = await rootBundle.load(_markerAssetPath);
       final Uint8List imageData = bytes.buffer.asUint8List();
@@ -54,217 +60,319 @@ class _MapFeaturesScreenState extends State<MapFeaturesScreen> {
     }
   }
 
-  /// Add a marker dynamically at the specified location
-  void _addMarker(LatLng latLng) async {
-    if (_isMarkerImageAdded) {
-      marker = await mapController?.addSymbol(
-        SymbolOptions(
-          geometry: latLng,
-          iconRotate: 180,
-          // draggable: true,
-
-          iconImage: _markerImageName,
-          iconSize: 0.05, // Adjust marker size
-          iconAnchor: 'bottom', // Align icon to the bottom
-        ),
-      );
-      print("Marker added at: $latLng");
-    } else {
-      print("Marker image not loaded yet!");
-    }
-  }
-
-//Tappable marker with info window
-  void _addTappableMarker(
-      LatLng ltlng, Function(Symbol? symbol) onMarkerTap) async {
-    if (mapController == null) return;
-
-    // Remove existing marker if any
-    if (marker != null) {
-      await mapController!.removeSymbol(marker!);
-    }
-
-    // Add new marker
-    await mapController!.addSymbol(
-      SymbolOptions(
-        geometry: ltlng,
-        iconSize: 0.05,
-        iconImage: _markerImageName, // Make sure to add this to your assets
-        // You can also use a default marker:
-        // iconImage: "marker-15",
-      ),
-    );
-
-    // Add tap listener for the marker
-    if (!_isSymbolTapListenerAdded) {
-      mapController!.onSymbolTapped.add(onMarkerTap);
-      _isSymbolTapListenerAdded = true;
-    }
-  }
-
-  void _onMarkerTapped(_) {
-    // if (symbol == marker) {
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("Marker tapped!"),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 1),
-      ),
-    );
-    // }
-  }
-
-  //Symbol icon
-  SymbolOptions _getSymbolOptions(String iconImage, int symbolCount) {
-    final geometry = LatLng(
-      center.latitude + sin(symbolCount * pi / 6.0) / 20.0,
-      center.longitude + cos(symbolCount * pi / 6.0) / 20.0,
-    );
-    return iconImage == 'customFont'
-        ? SymbolOptions(
-            geometry: geometry,
-            iconImage: 'custom-marker',
-            //'airport-15',
-            fontNames: ['DIN Offc Pro Bold', 'Arial Unicode MS Regular'],
-            textField: 'Airport',
-            textSize: 12.5,
-            textOffset: const Offset(0, 0.8),
-            textAnchor: 'top',
-            textColor: '#000000',
-            textHaloBlur: 1,
-            textHaloColor: '#ffffff',
-            textHaloWidth: 0.8,
-          )
-        : SymbolOptions(
-            geometry: geometry,
-            textField: 'Airport',
-            textOffset: const Offset(0, 0.8),
-            iconImage: iconImage,
-          );
-  }
-
-  /// Callback when the map is created
   void _onMapCreated(MapLibreMapController controller) {
     mapController = controller;
-
-    _loadMarkerImage(); // Load the marker image when the map is created
+    _loadMarkerImage();
+    controller.onSymbolTapped.add(_onMarkerTapped);
   }
 
-  /// Callback when the map style is loaded
   void _onStyleLoadedCallback() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("Style loaded successfully!"),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 1),
+    // addChargerStations();
+  }
+
+  void _onMarkerTapped(Symbol symbol) {
+    final charger = markersMap[symbol];
+    if (charger != null) {
+      setState(() {
+        selectedCharger = charger;
+      });
+
+      // Animate camera to center on selected charger
+      mapController?.animateCamera(
+        CameraUpdate.newLatLng(charger.location),
+      );
+    }
+  }
+
+  void addChargerStations() {
+    for (var charger in evChargers) {
+      final symbol = SymbolOptions(
+        geometry: charger.location,
+        iconImage: _markerImageName,
+        iconSize: 0.05,
+        textField: charger.name,
+        textSize: 12.5,
+        textOffset: const Offset(0, 0.8),
+        textAnchor: 'top',
+        textColor: '#131313',
+        textHaloBlur: 1,
+        textHaloColor: '#ffffff',
+        textHaloWidth: 0.8,
+      );
+
+      mapController?.addSymbol(symbol).then((value) {
+        markersMap[value] = charger;
+      });
+
+      selectedCharger = evChargers[0];
+    }
+  }
+
+  Widget _buildInfoWindow() {
+    if (!isShowChargingStations) return const SizedBox.shrink();
+
+    return Positioned(
+      bottom: 16,
+      left: 16,
+      right: 16,
+      child: SizedBox(
+        height: 200,
+        child: PageView.builder(
+            itemCount: evChargers.length,
+            controller: _pageController,
+            onPageChanged: (value) => setState(() {
+                  selectedCharger = evChargers[value];
+                  mapController?.animateCamera(
+                    CameraUpdate.newLatLng(selectedCharger!.location),
+                  );
+                }),
+            itemBuilder: (context, index) {
+              return Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              selectedCharger!.name,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                selectedCharger = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        selectedCharger!.address,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.bolt, color: Colors.blue),
+                          Text(' ${selectedCharger!.powerOutput} kW'),
+                          const SizedBox(width: 16),
+                          Icon(Icons.attach_money, color: Colors.green),
+                          Text('₹${selectedCharger!.pricePerKWh}/kWh'),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.access_time, color: Colors.orange),
+                          const SizedBox(width: 4),
+                          Text(selectedCharger!.operatingHours),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.electric_car, color: Colors.purple),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Connectors: ${selectedCharger!.connectorTypes.join(", ")}',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.star, color: Colors.amber),
+                          const SizedBox(width: 4),
+                          Text('${selectedCharger!.ratings}'),
+                          const SizedBox(width: 16),
+                          Icon(Icons.ev_station, color: Colors.green),
+                          const SizedBox(width: 4),
+                          Text('${selectedCharger!.numberOfPorts} ports'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
       ),
     );
   }
 
-  @override
-  void dispose() {
-    if (_isSymbolTapListenerAdded) {
-      mapController?.onSymbolTapped.remove(_onMarkerTapped);
-    }
-    super.dispose();
+  Future<Map<String, dynamic>> getRoute() async {
+    Dio dio = Dio();
+    final String path =
+        "https://raptee-navigation-dot-raptee-engine.el.r.appspot.com/maps/getRoute";
+    Map<String, dynamic>? queryParameters = {
+      "points":
+          "80.25815458026206,12.97343302427844;80.25906981525418,12.9795527640236",
+    };
+
+    Response response = await dio.get(path, queryParameters: queryParameters);
+    // print(response.data);
+    return response.data;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: MapLibreMap(
-        // styleString: "http://10.0.0.255:8080/styles/test-style/style.json",
-        // styleString: "http://10.0.0.143:8080/styles/test-style/style.json",
-        // styleString: "http://34.93.16.227:8080/styles/test-style/style.json",
-        styleString: "https://maps.raptee.com/styles/test-style/style.json",
-        onMapCreated: _onMapCreated,
-        onStyleLoadedCallback: _onStyleLoadedCallback,
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(13.067439, 80.237617), // Default center position
-          zoom: 8.0,
-        ),
-        myLocationEnabled: true,
-        onMapClick: (point, latLng) {
-          print("Map clicked at: $latLng");
-          // _addMarker(latLng);
-        },
-        onMapLongClick: (point, latLng) {
-          print("Map long-clicked at: $latLng");
-        },
-      ),
-      floatingActionButton: SizedBox(
-        width: MediaQuery.of(context).size.width,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  _addMarker(LatLng(13.017882, 80.174146));
-                },
-                child: Text("Marker"),
+        body: Stack(
+          children: [
+            MapLibreMap(
+              styleString:
+                  "https://maps.raptee.com/styles/test-style/style.json",
+              onMapCreated: _onMapCreated,
+              onStyleLoadedCallback: _onStyleLoadedCallback,
+              initialCameraPosition: const CameraPosition(
+                target: LatLng(20.5937, 78.9629), // Center of India
+                zoom: 4.0,
               ),
-              ElevatedButton(
-                onPressed: () {
-                  mapController?.removeSymbol(marker!);
-                },
-                child: Text("Remove Marker"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  _addTappableMarker(LatLng(13.017882, 80.274000), (symbol) {
-                    _onMarkerTapped(marker);
-                  });
-                },
-                child: Text("Tappable Marker"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  _addTappableMarker(LatLng(13.017882, 80.174146), (symbol) {
-                    _onMarkerTapped(marker);
-                  });
-                },
-                child: Text("Tappable Marker1"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  addChargerStations();
-                },
-                child: Text("Charger Stations"),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  addChargerStations() {
-    for (var i = 0; i < evChargers.length; i++) {
-      final charger = evChargers[i];
-      _addTappableMarker(charger.location, (sy) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Charger: ${charger.name}\n'
-              'Address: ${charger.address}\n'
-              'Power Output: ${charger.powerOutput} kW\n'
-              'Connector Types: ${charger.connectorTypes.join(', ')}\n'
-              'Price per kWh: ₹${charger.pricePerKWh}\n'
-              'Operating Hours: ${charger.operatingHours}\n'
-              'Number of Ports: ${charger.numberOfPorts}\n'
-              'Network Operator: ${charger.networkOperator}\n'
-              'Ratings: ${charger.ratings}',
+              myLocationEnabled: true,
             ),
-            duration: const Duration(seconds: 5),
+            _buildInfoWindow(),
+          ],
+        ),
+        floatingActionButton: SizedBox(
+          width: MediaQuery.of(context).size.width,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    // _addMarker(LatLng(13.017882, 80.174146));
+                  },
+                  child: Text("Marker"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // mapController?.removeSymbol(marker!);
+                  },
+                  child: Text("Remove Marker"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // _addTappableMarker(LatLng(13.017882, 80.274000), (symbol) {
+                    //   _onMarkerTapped(marker);
+                    // });
+                  },
+                  child: Text("Tappable Marker"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // _addTappableMarker(LatLng(13.017882, 80.174146), (symbol) {
+                    //   _onMarkerTapped(marker);
+                    // });
+                  },
+                  child: Text("Tappable Marker1"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    addChargerStations();
+                    setState(() {
+                      isShowChargingStations = true;
+                    });
+                  },
+                  child: Text("Charger Stations"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    mapController!.removeSymbols(markersMap.keys.toList());
+                    setState(() {
+                      isShowChargingStations = false;
+                    });
+                  },
+                  child: Text("Remove Chargers"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    line = await mapController!.addLine(LineOptions(
+                      geometry: [
+                        LatLng(13.017882, 80.174146),
+                        LatLng(13.017882, 80.274000)
+                      ],
+                      lineColor: "#ff0000",
+                      lineWidth: 2.0,
+                    ));
+
+                    mapController!.animateCamera(
+                      CameraUpdate.newLatLngBounds(
+                        top: 50,
+                        bottom: 50,
+                        left: 50,
+                        right: 50,
+                        LatLngBounds(
+                          southwest: LatLng(13.017882, 80.174146),
+                          northeast: LatLng(13.017882, 80.274000),
+                        ),
+                      ),
+                    );
+
+                    setState(() {});
+                  },
+                  child: Text("Add Line"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    mapController!.removeLine(line!);
+
+                    setState(() {});
+                  },
+                  child: Text("Remove Line"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    getRoute().then((data) async {
+                      // print(data);
+                      List<LatLng> points = [];
+                      data["data"]["routes"][0]["geometry"]["coordinates"]
+                          .forEach((element) {
+                        print(element);
+                        points.add(LatLng(element[1], element[0]));
+                      });
+                      line = await mapController!.addLine(LineOptions(
+                        geometry: points,
+                        lineColor: "#40B5AD",
+                        lineWidth: 5.0,
+                      ));
+
+                      mapController!.animateCamera(
+                          CameraUpdate.newLatLngBounds(
+                            top: 50,
+                            bottom: 50,
+                            left: 50,
+                            right: 50,
+                            LatLngBounds(
+                              southwest: points[0],
+                              northeast: points[points.length - 1],
+                            ),
+                          ),
+                          duration: Duration(seconds: 2));
+                      setState(() {});
+                    });
+                  },
+                  child: Text("Get Route"),
+                ),
+              ],
+            ),
           ),
-        );
-      });
-    }
-    setState(() {});
+        ));
   }
 
   final List<EVCharger> evChargers = [
